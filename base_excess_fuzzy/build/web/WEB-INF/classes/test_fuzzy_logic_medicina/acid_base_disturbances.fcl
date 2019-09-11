@@ -1,0 +1,614 @@
+FUNCTION_BLOCK calculate_level_01
+// Define input variables
+VAR_INPUT
+    ph : REAL;
+END_VAR
+
+// Define output variable
+VAR_OUTPUT
+    acidosis: REAL;
+    alkalosis: REAL;
+END_VAR
+
+FUZZIFY ph
+    TERM low := (6,1) (6.5,0.9) (7.33,0.8) (7.4,0) ;
+    TERM normal := gauss 7.4 0.05;
+    TERM high := (7.4,0) (7.5,0.8) (8.5,0.9) (9,1);
+END_FUZZIFY
+
+// Defuzzify output variables
+
+DEFUZZIFY acidosis			
+    TERM unlikely := (0, 1) (50,0);
+    TERM probable := (25, 0) (50, 1) (75,0);
+    TERM very_likely := (50, 0) (100,1);
+    // Use 'Center Of Gravity' defuzzification method
+    METHOD : COG;
+    // Default value is 0 (if no rule activates defuzzifier)
+    DEFAULT := 0;
+END_DEFUZZIFY
+
+DEFUZZIFY alkalosis			
+    TERM unlikely := (0, 1) (50,0);
+    TERM probable := (25, 0) (50, 1) (75,0);
+    TERM very_likely := (50, 0) (100,1);
+    // Use 'Center Of Gravity' defuzzification method
+    METHOD : COG;
+    // Default value is 0 (if no rule activates defuzzifier)
+    DEFAULT := 0;
+END_DEFUZZIFY
+
+RULEBLOCK No1
+    // Use 'min' for 'and' (also implicit use 'max'
+    // for 'or' to fulfill DeMorgan's Law)
+    AND : MIN;
+    // Use 'min' activation method
+    ACT : MIN;
+    // Use 'max' accumulation method
+    ACCU : MAX;
+
+                RULE 1 : IF ph IS low
+                        THEN acidosis IS very_likely;
+                RULE 2 : IF ph IS high
+                        THEN acidosis IS unlikely;
+                RULE 3 : IF ph IS high
+                        THEN alkalosis IS very_likely;
+                RULE 4 : IF ph IS low
+                        THEN alkalosis IS unlikely;
+
+END_RULEBLOCK
+
+END_FUNCTION_BLOCK
+
+//********************************************************//
+
+
+FUNCTION_BLOCK calculate_level_02
+
+// Define input variables
+VAR_INPUT
+    acidosis : REAL;
+    alkalosis: REAL;
+    pco2: REAL;
+END_VAR
+
+// Define output variable
+VAR_OUTPUT
+    respiratory_acidosis: REAL;
+    expected_metabolic_acidosis: REAL;
+    respiratory_alkalosis: REAL;
+    expected_metabolic_alkalosis: REAL;
+END_VAR
+
+FUZZIFY acidosis			
+    TERM unlikely := (0, 1) (50,0);
+    TERM probable := (25, 0) (50, 1) (75,0);
+    TERM very_likely := (50, 0) (100,1);
+END_FUZZIFY
+
+FUZZIFY alkalosis			
+    TERM unlikely := (0, 1) (50,0);
+    TERM probable := (25, 0) (50, 1) (75,0);
+    TERM very_likely := (50, 0) (100,1);
+END_FUZZIFY
+
+FUZZIFY pco2
+    TERM low := (0,1) (32,0.5) (43,0);
+    TERM normal := gbell 6.5 8 40;
+    TERM high := (37,0) (45,0.5) (95,1);
+END_FUZZIFY
+
+// Defuzzify output variables
+
+DEFUZZIFY respiratory_acidosis			
+    TERM unlikely := (0, 1) (50,0);
+    TERM probable := (25, 0) (50, 1) (75,0);
+    TERM very_likely := (50, 0) (100,1);
+    // Use 'Center Of Gravity' defuzzification method
+    METHOD : COG;
+    // Default value is 0 (if no rule activates defuzzifier)
+    DEFAULT := 0;
+END_DEFUZZIFY
+
+DEFUZZIFY expected_metabolic_acidosis			
+    TERM unlikely := (0, 1) (50,0);
+    TERM probable := (25, 0) (50, 1) (75,0);
+    TERM very_likely := (50, 0) (100,1);
+    // Use 'Center Of Gravity' defuzzification method
+    METHOD : COG;
+    // Default value is 0 (if no rule activates defuzzifier)
+    DEFAULT := 0;
+END_DEFUZZIFY
+
+DEFUZZIFY respiratory_alkalosis		
+    TERM unlikely := (0, 1) (50,0);
+    TERM probable := (25, 0) (50, 1) (75,0);
+    TERM very_likely := (50, 0) (100,1);
+    // Use 'Center Of Gravity' defuzzification method
+    METHOD : COG;
+    // Default value is 0 (if no rule activates defuzzifier)
+    DEFAULT := 0;
+END_DEFUZZIFY
+
+DEFUZZIFY expected_metabolic_alkalosis			
+    TERM unlikely := (0, 1) (50,0);
+    TERM probable := (25, 0) (50, 1) (75,0);
+    TERM very_likely := (50, 0) (100,1);
+    // Use 'Center Of Gravity' defuzzification method
+    METHOD : COG;
+    // Default value is 0 (if no rule activates defuzzifier)
+    DEFAULT := 0;
+END_DEFUZZIFY
+
+RULEBLOCK No1
+    // Use 'min' for 'and' (also implicit use 'max'
+    // for 'or' to fulfill DeMorgan's Law)
+    AND : MIN;
+    // Use 'min' activation method
+    ACT : MIN;
+    // Use 'max' accumulation method
+    ACCU : MAX;
+
+                RULE 1 : IF acidosis IS very_likely and pco2 is high
+                        THEN respiratory_acidosis IS very_likely;
+
+                RULE 2 : IF acidosis IS very_likely and pco2 is low
+                        THEN expected_metabolic_acidosis IS very_likely;
+                
+                RULE 3 : IF alkalosis IS very_likely and pco2 is low
+                        THEN respiratory_alkalosis IS very_likely;
+
+                RULE 4 : IF alkalosis IS very_likely and pco2 is high
+                        THEN expected_metabolic_alkalosis IS very_likely;
+
+                RULE 5 : IF acidosis IS unlikely and pco2 is normal
+                        THEN respiratory_acidosis IS unlikely;
+
+                RULE 6 : IF acidosis IS unlikely and pco2 is normal
+                        THEN expected_metabolic_acidosis IS unlikely;
+                
+                RULE 7 : IF alkalosis IS unlikely and pco2 is normal
+                        THEN respiratory_alkalosis IS unlikely;
+
+                RULE 8 : IF alkalosis IS unlikely and pco2 is normal
+                        THEN expected_metabolic_alkalosis IS unlikely;
+
+END_RULEBLOCK
+
+END_FUNCTION_BLOCK
+
+
+//********************************************************//
+
+FUNCTION_BLOCK calculate_level_03
+
+// Define input variables
+VAR_INPUT
+    respiratory_acidosis: REAL;
+    expected_metabolic_acidosis: REAL;
+    respiratory_alkalosis: REAL;
+    expected_metabolic_alkalosis: REAL;
+    sbe: REAL;
+END_VAR
+
+// Define output variable
+VAR_OUTPUT
+    acute_respiratory_acidosis: REAL;
+    chronic_respiratory_acidosis: REAL;
+    metabolic_acidosis: REAL;
+    acute_respiratory_alkalosis: REAL;
+    chronic_respiratory_alkalosis: REAL;
+    metabolic_alkalosis: REAL;
+END_VAR
+
+FUZZIFY respiratory_acidosis			
+    TERM unlikely := (0, 1) (50,0);
+    TERM probable := (25, 0) (50, 1) (75,0);
+    TERM very_likely := (50, 0) (100,1);
+END_FUZZIFY
+
+FUZZIFY expected_metabolic_acidosis			
+    TERM unlikely := (0, 1) (50,0);
+    TERM probable := (25, 0) (50, 1) (75,0);
+    TERM very_likely := (50, 0) (100,1);
+END_FUZZIFY
+
+FUZZIFY respiratory_alkalosis			
+    TERM unlikely := (0, 1) (50,0);
+    TERM probable := (25, 0) (50, 1) (75,0);
+    TERM very_likely := (50, 0) (100,1);
+END_FUZZIFY
+
+FUZZIFY expected_metabolic_alkalosis			
+    TERM unlikely := (0, 1) (50,0);
+    TERM probable := (25, 0) (50, 1) (75,0);
+    TERM very_likely := (50, 0) (100,1);
+END_FUZZIFY
+
+FUZZIFY sbe
+    TERM low := (-60,1) (-2,0.5) (0.5,0);
+    TERM normal := gbell 2.5 6 0.5;
+    TERM high := (0.5,0) (3,0.5) (60,1);
+END_FUZZIFY
+
+// Defuzzify output variables
+
+DEFUZZIFY acute_respiratory_acidosis		
+    TERM unlikely := (0, 1) (50,0);
+    TERM probable := (25, 0) (50, 1) (75,0);
+    TERM very_likely := (50, 0) (100,1);
+    // Use 'Center Of Gravity' defuzzification method
+    METHOD : COG;
+    // Default value is 0 (if no rule activates defuzzifier)
+    DEFAULT := 0;
+END_DEFUZZIFY
+
+DEFUZZIFY chronic_respiratory_acidosis		
+    TERM unlikely := (0, 1) (50,0);
+    TERM probable := (25, 0) (50, 1) (75,0);
+    TERM very_likely := (50, 0) (100,1);
+    // Use 'Center Of Gravity' defuzzification method
+    METHOD : COG;
+    // Default value is 0 (if no rule activates defuzzifier)
+    DEFAULT := 0;
+END_DEFUZZIFY
+
+DEFUZZIFY metabolic_acidosis	
+    TERM unlikely := (0, 1) (50,0);
+    TERM probable := (25, 0) (50, 1) (75,0);
+    TERM very_likely := (50, 0) (100,1);
+    // Use 'Center Of Gravity' defuzzification method
+    METHOD : COG;
+    // Default value is 0 (if no rule activates defuzzifier)
+    DEFAULT := 0;
+END_DEFUZZIFY
+
+DEFUZZIFY acute_respiratory_alkalosis		
+    TERM unlikely := (0, 1) (50,0);
+    TERM probable := (25, 0) (50, 1) (75,0);
+    TERM very_likely := (50, 0) (100,1);
+    // Use 'Center Of Gravity' defuzzification method
+    METHOD : COG;
+    // Default value is 0 (if no rule activates defuzzifier)
+    DEFAULT := 0;
+END_DEFUZZIFY
+
+DEFUZZIFY chronic_respiratory_alkalosis	
+    TERM unlikely := (0, 1) (50,0);
+    TERM probable := (25, 0) (50, 1) (75,0);
+    TERM very_likely := (50, 0) (100,1);
+    // Use 'Center Of Gravity' defuzzification method
+    METHOD : COG;
+    // Default value is 0 (if no rule activates defuzzifier)
+    DEFAULT := 0;
+END_DEFUZZIFY
+
+DEFUZZIFY metabolic_alkalosis		
+    TERM unlikely := (0, 1) (50,0);
+    TERM probable := (25, 0) (50, 1) (75,0);
+    TERM very_likely := (50, 0) (100,1);
+    // Use 'Center Of Gravity' defuzzification method
+    METHOD : COG;
+    // Default value is 0 (if no rule activates defuzzifier)
+    DEFAULT := 0;
+END_DEFUZZIFY
+
+RULEBLOCK No1
+    // Use 'min' for 'and' (also implicit use 'max'
+    // for 'or' to fulfill DeMorgan's Law)
+    AND : MIN;
+    // Use 'min' activation method
+    ACT : MIN;
+    // Use 'max' accumulation method
+    ACCU : MAX;
+
+                RULE 1 : IF respiratory_acidosis IS very_likely and sbe is normal
+                        THEN acute_respiratory_acidosis IS very_likely;
+
+                RULE 2 : IF respiratory_acidosis IS very_likely and sbe is high
+                        THEN chronic_respiratory_acidosis IS very_likely;
+                
+                RULE 3 : IF expected_metabolic_acidosis IS very_likely and sbe is low
+                        THEN metabolic_acidosis IS very_likely;
+
+                RULE 4 : IF respiratory_alkalosis IS very_likely and sbe is normal
+                        THEN acute_respiratory_alkalosis IS very_likely;
+                
+                RULE 5 : IF respiratory_alkalosis IS very_likely and sbe is low
+                        THEN chronic_respiratory_alkalosis IS very_likely;
+
+                RULE 6 : IF expected_metabolic_alkalosis IS very_likely and sbe is high
+                        THEN metabolic_alkalosis IS very_likely;
+
+                RULE 7 : IF respiratory_acidosis IS unlikely and sbe is low
+                        THEN acute_respiratory_acidosis IS unlikely;
+
+                RULE 8 : IF respiratory_acidosis IS unlikely and sbe is normal
+                        THEN chronic_respiratory_acidosis IS unlikely;
+                
+                RULE 9 : IF expected_metabolic_acidosis IS unlikely and sbe is low
+                        THEN metabolic_acidosis IS unlikely;
+
+                RULE 10 : IF respiratory_alkalosis IS unlikely and sbe is high
+                        THEN acute_respiratory_alkalosis IS unlikely;
+                
+                RULE 11 : IF respiratory_alkalosis IS unlikely and sbe is normal
+                        THEN chronic_respiratory_alkalosis IS unlikely;
+
+                RULE 12 : IF expected_metabolic_alkalosis IS unlikely and sbe is normal
+                        THEN metabolic_alkalosis IS unlikely;
+                        
+                        
+END_RULEBLOCK
+
+END_FUNCTION_BLOCK
+
+//********************************************************//
+FUNCTION_BLOCK calculate_level_04
+
+// Define input variables
+VAR_INPUT
+   
+    compare_sbe_min: REAL;
+    compare_sbe_max: REAL;
+
+    compare_dhco3_min: REAL;
+    compare_dhco3_max: REAL;
+
+    compare_pco2_min: REAL;
+    compare_pco2_max: REAL;
+    
+    compare_dpco2_min: REAL;
+    compare_dpco2_max: REAL;
+    
+END_VAR
+
+// Define output variable
+VAR_OUTPUT
+    metabolic_compensatory_response: REAL;
+    respiratory_compensatory_response: REAL;
+
+END_VAR
+
+FUZZIFY compare_pco2_min
+    TERM less := (-100,1) (-7.8,1) (-2.6,0.8) (0,0);
+    TERM equal := gbell 2.6 5.2 0;
+    TERM greather := (0,0) (2.6,0.8) (7.8,1) (100,1);
+END_FUZZIFY
+
+FUZZIFY compare_pco2_max
+    TERM less := (-100,1) (-7.8,1) (-2.6,0.8) (0,0);
+    TERM equal := gbell 2.6 5.2 0;
+    TERM greather := (0,0) (2.6,0.8) (7.8,1) (100,1);
+END_FUZZIFY
+
+FUZZIFY compare_dpco2_min
+    TERM less := (-100,1) (-7.8,1) (-2.6,0.8) (0,0);
+    TERM equal := gbell 2.6 5.2 0;
+    TERM greather := (0,0) (2.6,0.8) (7.8,1) (100,1);
+END_FUZZIFY
+
+FUZZIFY compare_dpco2_max
+    TERM less := (-100,1) (-7.8,1) (-2.6,0.8) (0,0);
+    TERM equal := gbell 2.6 5.2 0;
+    TERM greather := (0,0) (2.6,0.8) (7.8,1) (100,1);
+END_FUZZIFY
+
+FUZZIFY compare_dhco3_min
+    TERM less := (-100,1) (-9,1) (-3,0.8) (0,0);
+    TERM equal := gbell 3 6 0;
+    TERM greather := (0,0) (3,0.8) (9,1) (100,1);
+END_FUZZIFY
+
+FUZZIFY compare_dhco3_max
+    TERM less := (-100,1) (-9,1) (-3,0.8) (0,0);
+    TERM equal := gbell 3 6 0;
+    TERM greather := (0,0) (3,0.8) (9,1) (100,1);
+END_FUZZIFY
+
+
+FUZZIFY compare_sbe_min
+    TERM less := (-20,1) (-2.4,1) (-0.8,0.8) (0,0);
+    TERM equal := gbell 2.5 3 0;
+    TERM greather := (0,0) (0.8,0.8) (2.4,1) (20,1);
+END_FUZZIFY
+
+FUZZIFY compare_sbe_max
+    TERM less := (-20,1) (-2.4,1) (-0.8,0.8) (0,0);
+    TERM equal := gbell 2.5 3 0;
+    TERM greather := (0,0) (0.8,0.8) (2.4,1) (20,1);
+END_FUZZIFY
+
+// Defuzzify output variables
+
+DEFUZZIFY metabolic_compensatory_response
+    TERM unlikely := (0, 1) (50,0);
+    TERM probable := (25, 0) (50, 1) (75,0);
+    TERM very_likely := (50, 0) (100,1);
+    // Use 'Center Of Gravity' defuzzification method
+    METHOD : COG;
+    // Default value is 0 (if no rule activates defuzzifier)
+    DEFAULT := 0;
+END_DEFUZZIFY
+
+DEFUZZIFY respiratory_compensatory_response
+    TERM unlikely := (0, 1) (50,0);
+    TERM probable := (25, 0) (50, 1) (75,0);
+    TERM very_likely := (50, 0) (100,1);
+    // Use 'Center Of Gravity' defuzzification method
+    METHOD : COG;
+    // Default value is 0 (if no rule activates defuzzifier)
+    DEFAULT := 0;
+END_DEFUZZIFY
+
+RULEBLOCK No1
+    // Use 'min' for 'and' (also implicit use 'max'
+    // for 'or' to fulfill DeMorgan's Law)
+    AND : MIN;
+    // Use 'min' activation method
+    ACT : MIN;
+    // Use 'max' accumulation method
+    ACCU : MAX;
+
+        RULE 1 : IF ((compare_sbe_min IS greather OR compare_sbe_min IS equal) AND (compare_sbe_max IS less OR compare_sbe_max IS equal))
+                OR ((compare_dhco3_min IS greather OR compare_dhco3_min IS equal) AND (compare_dhco3_max IS less OR compare_dhco3_max IS equal))
+                THEN metabolic_compensatory_response IS very_likely;
+        
+        RULE 2 : IF (compare_sbe_min IS less OR compare_sbe_max IS greather)
+                AND (compare_dhco3_min IS less OR compare_dhco3_max IS greather)
+                THEN metabolic_compensatory_response IS unlikely;
+        
+        RULE 3 : IF ((compare_pco2_min IS greather OR compare_pco2_min IS equal) AND (compare_pco2_max IS less OR compare_pco2_max IS equal))
+                OR ((compare_dpco2_min IS greather OR compare_dpco2_min IS equal) AND (compare_dpco2_max IS less OR compare_dpco2_max IS equal))
+                THEN respiratory_compensatory_response IS very_likely;
+
+        RULE 4 : IF (compare_pco2_min IS less OR compare_pco2_max IS greather)
+                AND (compare_dpco2_min IS less OR compare_dpco2_max IS greather)
+                THEN respiratory_compensatory_response IS unlikely;
+
+END_RULEBLOCK
+
+END_FUNCTION_BLOCK
+
+//********************************************************//
+
+FUNCTION_BLOCK calculate_level_05
+
+// Define input variables
+VAR_INPUT
+   
+    compare_sbe_min: REAL;
+    compare_sbe_max: REAL;
+
+    compare_dhco3_min: REAL;
+    compare_dhco3_max: REAL;
+
+    compare_pco2_min: REAL;
+    compare_pco2_max: REAL;
+    
+    compare_dpco2_min: REAL;
+    compare_dpco2_max: REAL;
+    
+END_VAR
+
+// Define output variable
+VAR_OUTPUT
+    additional_respiratory_acidosis: REAL;
+    additional_respiratory_alkalosis: REAL;
+    additional_metabolic_acidosis: REAL;
+    additional_metabolic_alkalosis: REAL;
+END_VAR
+
+FUZZIFY compare_pco2_min
+    TERM less := (-100,1) (-7.8,1) (-2.6,0.8) (0,0);
+    TERM equal := gbell 2.6 5.2 0;
+    TERM greather := (0,0) (2.6,0.8) (7.8,1) (100,1);
+END_FUZZIFY
+
+FUZZIFY compare_pco2_max
+    TERM less := (-100,1) (-7.8,1) (-2.6,0.8) (0,0);
+    TERM equal := gbell 2.6 5.2 0;
+    TERM greather := (0,0) (2.6,0.8) (7.8,1) (100,1);
+END_FUZZIFY
+
+FUZZIFY compare_dpco2_min
+    TERM less := (-100,1) (-7.8,1) (-2.6,0.8) (0,0);
+    TERM equal := gbell 2.6 5.2 0;
+    TERM greather := (0,0) (2.6,0.8) (7.8,1) (100,1);
+END_FUZZIFY
+
+FUZZIFY compare_dpco2_max
+    TERM less := (-100,1) (-7.8,1) (-2.6,0.8) (0,0);
+    TERM equal := gbell 2.6 5.2 0;
+    TERM greather := (0,0) (2.6,0.8) (7.8,1) (100,1);
+END_FUZZIFY
+
+FUZZIFY compare_dhco3_min
+    TERM less := (-100,1) (-9,1) (-3,0.8) (0,0);
+    TERM equal := gbell 3 6 0;
+    TERM greather := (0,0) (3,0.8) (9,1) (100,1);
+END_FUZZIFY
+
+FUZZIFY compare_dhco3_max
+    TERM less := (-100,1) (-9,1) (-3,0.8) (0,0);
+    TERM equal := gbell 3 6 0;
+    TERM greather := (0,0) (3,0.8) (9,1) (100,1);
+END_FUZZIFY
+
+FUZZIFY compare_sbe_min
+    TERM less := (-20,1) (-2.4,1) (-0.8,0.8) (0,0);
+    TERM equal := gbell 2.5 3 0;
+    TERM greather := (0,0) (0.8,0.8) (2.4,1) (20,1);
+END_FUZZIFY
+
+FUZZIFY compare_sbe_max
+    TERM less := (-20,1) (-2.4,1) (-0.8,0.8) (0,0);
+    TERM equal := gbell 2.5 3 0;
+    TERM greather := (0,0) (0.8,0.8) (2.4,1) (20,1);
+END_FUZZIFY
+
+// Defuzzify output variables
+DEFUZZIFY additional_respiratory_acidosis
+    TERM unlikely := (0, 1) (50,0);
+    TERM probable := (25, 0) (50, 1) (75,0);
+    TERM very_likely := (50, 0) (100,1);
+    // Use 'Center Of Gravity' defuzzification method
+    METHOD : COG;
+    // Default value is 0 (if no rule activates defuzzifier)
+    DEFAULT := 0;
+END_DEFUZZIFY
+
+DEFUZZIFY additional_respiratory_alkalosis			
+    TERM unlikely := (0, 1) (50,0);
+    TERM probable := (25, 0) (50, 1) (75,0);
+    TERM very_likely := (50, 0) (100,1);
+    // Use 'Center Of Gravity' defuzzification method
+    METHOD : COG;
+    // Default value is 0 (if no rule activates defuzzifier)
+    DEFAULT := 0;
+END_DEFUZZIFY
+
+DEFUZZIFY additional_metabolic_acidosis			
+    TERM unlikely := (0, 1) (50,0);
+    TERM probable := (25, 0) (50, 1) (75,0);
+    TERM very_likely := (50, 0) (100,1);
+    // Use 'Center Of Gravity' defuzzification method
+    METHOD : COG;
+    // Default value is 0 (if no rule activates defuzzifier)
+    DEFAULT := 0;
+END_DEFUZZIFY
+
+DEFUZZIFY additional_metabolic_alkalosis
+    TERM unlikely := (0, 1) (50,0);
+    TERM probable := (25, 0) (50, 1) (75,0);
+    TERM very_likely := (50, 0) (100,1);
+    // Use 'Center Of Gravity' defuzzification method
+    METHOD : COG;
+    // Default value is 0 (if no rule activates defuzzifier)
+    DEFAULT := 0;
+END_DEFUZZIFY
+
+RULEBLOCK No1
+    // Use 'min' for 'and' (also implicit use 'max'
+    // for 'or' to fulfill DeMorgan's Law)
+    AND : MIN;
+    // Use 'min' activation method
+    ACT : MIN;
+    // Use 'max' accumulation method
+    ACCU : MAX;
+
+        RULE 1 : IF compare_sbe_min IS less AND compare_dhco3_min IS less 
+                THEN additional_metabolic_acidosis IS very_likely;
+        
+        RULE 2 : IF compare_sbe_min IS greather AND compare_dhco3_max IS greather 
+                THEN additional_metabolic_alkalosis IS very_likely;
+               
+        RULE 3 : IF compare_pco2_min IS less OR compare_dpco2_min IS less
+                THEN additional_respiratory_alkalosis IS very_likely;
+        
+        RULE 4 : IF compare_pco2_max IS greather OR compare_dpco2_max IS greather
+                THEN additional_respiratory_acidosis IS very_likely;
+
+END_RULEBLOCK
+
+END_FUNCTION_BLOCK
